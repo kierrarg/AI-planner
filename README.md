@@ -1,5 +1,7 @@
 # This project is still a work in progress
 
+The UI was created using Tkinter
+
 # Task Manager
 
 Implements a database using SQLite to add, remove and track task completion

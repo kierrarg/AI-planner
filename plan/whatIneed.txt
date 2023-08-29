@@ -1,0 +1,26 @@
+1. User Interface 
+    Tkinter 
+
+        - front page gui 
+            - calendar button which leads to calendar UI 
+                - calendar page to add class schedule and due dates 
+                    - DRY class schedule 
+            - tasks button leads to tasks UI
+                - tasks checklist 
+            - daily plan button leads to daily plan UI
+                - hourly planner page which daily plan 
+2. Calendar Integration
+    google-api-python-client -> integrate google calendar 
+        - calendar UI
+        - month navigation allowing users to navigate between months 
+        - google calendar integration 
+        - ui for adding events 
+3. Task Management
+        - connect to an SQLite database
+            - interactive checklist 
+            - ability to prioritize tasks
+4. Points System 
+    differing points for tasks 
+    database to track points and completion levels 
+5. AI-Based daily planning
+    generate daily schedule 

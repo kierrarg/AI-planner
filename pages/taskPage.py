@@ -14,12 +14,21 @@ class TaskListPage(tk.Frame):
         label = tk.Label(self, text="This is the Task List Page")
         label.pack(fill="both", expand=True)
 
-        # Widget for entering new tasks
-        task_entry = tk.Entry(self)
-        task_entry.pack(fill="x")
-        # widget for entering priority
-        priority_entry = tk.Entry(self)
-        priority_entry.pack(fill="x")
+        #frame for task input
+        input_frame = tk.Frame(self, bg="#ADD8E6")
+        input_frame.pack(side="left", padx=10, pady=10, anchor="w")
+
+        task_label = tk.Label(input_frame, text="Task:", font=("Arial", 10))
+        task_label.pack(anchor="w")
+
+        task_entry= tk.Entry(input_frame, width=30)
+        task_entry.pack(fill="x", padx=5, pady=5)
+
+        priority_label = tk.Label(input_frame, text="Priority (1-5):", font=("Arial", 10))
+        priority_label.pack(anchor="w")
+
+        priority_entry = tk.Entry(input_frame, width=5)
+        priority_entry.pack(fill="x", padx=5, pady=5)
 
         # Create a Treeview widget to display tasks
         task_treeview = ttk.Treeview(self, columns=("Task", "Priority"), selectmode=tk.EXTENDED)
@@ -60,13 +69,14 @@ class TaskListPage(tk.Frame):
         # Clear Treeview
         task_treeview.delete(*task_treeview.get_children())
 
-        # Display tasks in Treeview without showing task IDs
+        # Display tasks in Treeview with the task text aligned to the left
         for task_text in tasks:
             completed = db.get_completion(tasks[task_text])  # Get task completion status using task_text's ID
             priority_level = db.get_priority_level(tasks[task_text])
 
             if completed:
                 # Apply a custom style for completed tasks
+                task_text = " [Completed] " + task_text  # Add [Completed] prefix
                 task_treeview.insert("", "end", values=(task_text, priority_level), tags=("completed",))
             else:
                 task_treeview.insert("", "end", values=(task_text, priority_level), tags=("incomplete"))
@@ -84,6 +94,7 @@ class TaskListPage(tk.Frame):
         # ensure priority level is an integer
         try:
             priority_level = int(priority_level)
+            priority_level = max(1, min(priority_level, 5)) #limiting allowed priority level
         except ValueError:
             priority_level = 1 #default to 1 if not valid int
 

@@ -148,23 +148,44 @@ class CalendarPage(tk.Frame):
             #update label of button to match day number
             self.buttons[row][col].config(text=str(clicked_day))
 
-            # show add event dialog
-            event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title for {event_date}:")
-            if event_title:
-                event_description = tk_simpledialog.askstring("Event Details", "Enter Event Description:")
-                event_start_time = tk_simpledialog.askstring("Event Details", "Enter Event Time (HH:MM):")
-                event_end_time = tk_simpledialog.askstring("Event Details", "Enter Event end time (HH:MM)")
-                if event_start_time:
-                    # combine event date and time into datetime object
-                    event_datetime = datetime.datetime.strptime(f"{event_date} {event_start_time}", "%Y-%m-%d %H:%M")
+            # pop up window for adding or deleting events
+            event_popup = tk.Toplevel(self)
+            event_popup.title(f"Events for {event_date}")
 
-                    event_end_datetime = datetime.datetime.strptime(f"{event_date} {event_end_time}", "%Y-%m-%d %H:%M")
+            # add event
+            add_event_button = tk.Button(event_popup, text="Add Event", command=lambda: self.add_event_popup(event_date, clicked_day, clicked_month))
+            add_event_button.pack()
 
-                    # Update clicked_day and clicked_month attributes
-                    self.clicked_day = clicked_day
-                    self.clicked_month = clicked_month
+            # delete event
+            delete_event_button = tk.Button(event_popup, text="Delete Event", command=lambda: self.delete_event_popup(event_date))
+            delete_event_button.pack()
 
-                    self.add_event(event_title, event_description, event_datetime, event_end_datetime)
+
+    def add_event_popup(self, event_date, clicked_day, clicked_month):
+        # show add event dialog
+        event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title for {event_date}:")
+        if event_title:
+            event_description = tk_simpledialog.askstring("Event Details", "Enter Event Description:")
+            event_start_time = tk_simpledialog.askstring("Event Details", "Enter Event Time (HH:MM):")
+            event_end_time = tk_simpledialog.askstring("Event Details", "Enter Event end time (HH:MM)")
+            if event_start_time:
+                # combine event date and time into datetime object
+                event_datetime = datetime.datetime.strptime(f"{event_date} {event_start_time}", "%Y-%m-%d %H:%M")
+
+                event_end_datetime = datetime.datetime.strptime(f"{event_date} {event_end_time}", "%Y-%m-%d %H:%M")
+
+                # Update clicked_day and clicked_month attributes
+                self.clicked_day = clicked_day
+                self.clicked_month = clicked_month
+
+                self.add_event(event_title, event_description, event_datetime, event_end_datetime)
+
+    def delete_event_popup(self, event_date):
+        # get title of event we want to delete
+        event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title for Event you want to delete")
+        if event_title:
+            self.delete_event(event_title, event_date)
+
 
     def add_event(self, event_title, event_description, event_datetime, event_end_datetime):
         if self.clicked_day is not None and self.clicked_month is not None:
@@ -193,8 +214,20 @@ class CalendarPage(tk.Frame):
                 #print full traceback for debugging
                 traceback.print_exc()
 
-    #def remove_event(self, date):
-        # retrieve events for selected date
-        # if events exist, prompt the user to select event to remove
-        #use google calendar api to delete selected event
-        # display confirmation message
+    def delete_event(self, event_title, event_date):
+        try:
+            # retrieve event for selected date
+            events = calendar_service.events().list(calendarId='primary').execute()
+            for event in events.get('items', []):
+                # check if title matches
+                if event['summary'] == event_title:
+                    # retrieve date and time from api and convert to python datetime
+                    event_datetime = datetime.datetime.fromisoformat(event['start']['dateTime'])
+                    # delete event with specified id
+                    if event_datetime.date() == event_date:
+                        calendar_service.events().delete(calendarId='primary', eventId=event['id']).execute()
+                        print(f'Event with title "{event_title} deleted successfully')
+                        return
+            print(f'Event with title "{event_title}" not found')
+        except Exception as e:
+            print("An error has occured", (e))

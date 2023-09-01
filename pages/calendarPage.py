@@ -41,13 +41,13 @@ class CalendarPage(tk.Frame):
         calendar_frame.pack()
 
         # List of weekday labels
-        weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        self.weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
         # Calculate the weekday index for the first day of the month
         first_day = calendar.weekday(self.current_year, self.current_month, 1)
 
         # Adjust weekday labels based on the calculated index
-        adjusted_weekdays = weekdays[first_day:] + weekdays[:first_day]
+        adjusted_weekdays = self.weekdays[first_day:] + self.weekdays[:first_day]
 
         # Weekday labels at the top
         for col, weekday in enumerate(adjusted_weekdays):
@@ -67,6 +67,9 @@ class CalendarPage(tk.Frame):
                 # lambda is anonymous unnamed function _ is placeholder
                 day_button.bind("<Button-1>", lambda _, col=col, row=row: self.show_event_dialog(col, row))
             self.buttons.append(button_row)
+        # button for creating a recurring event
+        recurring_event_button = tk.Button(self, text="Create Recurring Event", command=self.create_recurring_event)
+        recurring_event_button.pack()
 
         # Creating arrow frames
         arrow_frame = tk.Frame(self)
@@ -127,6 +130,37 @@ class CalendarPage(tk.Frame):
                     # Update the text on the corresponding button
                     button = self.buttons[row_num][col_num]
                     button.config(text=str(day))
+
+    def create_recurring_event(self):
+        # dialog for recurring events
+        # create new window
+        recurring_event_dialog = tk.Toplevel(self)
+        recurring_event_dialog.title("Recurring Event Settings")
+
+        # widget for selecting weekdays
+        weekday_label = tk.Label(recurring_event_dialog, text="Select Weekdays:")
+        weekday_label.pack()
+
+        selected_weekdays = []
+        weekday_checkbox = []
+
+        for day in self.weekdays:
+            var = tk.IntVar()
+            checkbox = tk.Checkbutton(recurring_event_dialog, text=day, variable=var)
+            checkbox.pack()
+            weekday_checkbox.append((day, var))
+
+        # widget for specifying number of weeks
+        weeks_label = tk.Label(recurring_event_dialog, text="Number of repeating weeks")
+        weeks_label.pack()
+
+        weeks_entry = tk.Entry(recurring_event_dialog)
+        weeks_entry.pack()
+
+        # button to confirm
+        create_button = tk.Button(recurring_event_dialog, text="Create Recurring Event", command=lambda: self.add_recurring_event(weekday_checkbox, weeks_entry))
+        create_button.pack()
+
 
     def show_event_dialog(self, col, row):
         # get text (day number) displayed on clicked button

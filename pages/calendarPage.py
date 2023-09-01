@@ -1,6 +1,24 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog as tk_simpledialog
 import calendar
+import datetime
+import logging
+from pages.goog import create_calendar_service, create_event, delete_custom_event_by_title
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set the desired logging level
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+
+# Define the scopes you need for Google Calendar API
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+
+# Specify fixed redirect URI
+REDIRECT_URI = 'http://localhost:8090/oauth2callback'
+
+# Create a Google Calendar service
+calendar_service = create_calendar_service('credentials.json', 'token files', 'calendar', 'v3', SCOPES, prefix='')
 
 class CalendarPage(tk.Frame):
     def __init__(self, master=None):
@@ -41,6 +59,10 @@ class CalendarPage(tk.Frame):
                 day_button = tk.Button(calendar_frame, text="", width=3, height=1)
                 day_button.grid(row=row, column=col, padx=5, pady=5)
                 button_row.append(day_button)
+                #bind dialog method to button
+                # 'bind' method in tkinter to bind day button and trigger when mouse button 1 is clicked
+                # lambda is anonymous unnamed function _ is placeholder
+                day_button.bind("<Button-1>", lambda _, col=col, row=row: self.show_event_dialog(col, row))
             self.buttons.append(button_row)
 
         # Creating arrow frames
@@ -67,7 +89,9 @@ class CalendarPage(tk.Frame):
         if self.current_month == 0:
             self.current_month = 12
             self.current_year -= 1
-        self.update_month_label()
+        self.clicked_day = None #reset clicked day
+        self.clicked_month = None #reset clicked month
+        self.update_month_label() 
         self.update_calendar_grid()
 
     def next_month(self):
@@ -76,6 +100,8 @@ class CalendarPage(tk.Frame):
         if self.current_month == 13:
             self.current_month = 1
             self.current_year += 1
+        self.clicked_day = None #reset clicked day
+        self.clicked_month = None #reset clicked month
         self.update_month_label()
         self.update_calendar_grid()
 
@@ -98,3 +124,68 @@ class CalendarPage(tk.Frame):
                     # Update the text on the corresponding button
                     button = self.buttons[row_num][col_num]
                     button.config(text=str(day))
+
+    def show_event_dialog(self, col, row):
+        day_text = self.buttons[row][col]["text"]
+        if day_text:
+            clicked_day = int(day_text)
+            clicked_month = self.current_month
+
+            # Add logging to inspect values
+            logging.debug(f"Clicked Day: {clicked_day}, Clicked Month: {clicked_month}")
+
+            # Use clicked_day and clicked_month as the day and month components of the event date
+            event_date = f"{self.current_year}-{clicked_month:02d}-{clicked_day:02d}"  # Format as YYYY-MM-DD
+
+            # Update text label of button to match day number
+            self.buttons[row][col].config(text=str(clicked_day))
+
+            # Add logging to inspect values
+            logging.debug(f"Clicked Day: {clicked_day}, Clicked Month: {clicked_month}")
+
+            # Show add event dialog
+            event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title for {event_date}:")
+            if event_title:
+                event_description = tk_simpledialog.askstring("Event Details", "Enter Event Description:")
+                event_time = tk_simpledialog.askstring("Event Details", "Enter Event Time (HH:MM):")
+                if event_time:
+                    event_datetime = datetime.datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+
+                    # More logging to inspect event_datetime
+                    logging.debug(f"Event Datetime: {event_datetime}")
+
+                    self.add_event(event_title, event_description, event_datetime)
+
+    def add_event(self, event_title, event_description, event_datetime):
+        if self.clicked_day is not None and self.clicked_month is not None:
+            date = f"{self.current_year}-{self.clicked_month:02d}-{self.clicked_day:02d}"  # Format as YYYY-MM-DD
+            # retrieve event details from the user
+            event = {
+                'summary': event_title,
+                'description': event_description,
+                'start': {
+                    'dateTime': event_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'America/Edmonton',
+                },
+                'end': {
+                    'dateTime': event_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'timeZone': 'America/Edmonton',
+                },
+            }
+
+            # logging
+            logging.debug(f"Adding event: {event_title} on {date} at {event_datetime.strftime('%H:%M')}")
+
+            #use google calendar api to create event
+            event = calendar_service.events().insert(calendarId='primary', body=event).execute()
+
+            #logging
+            logging.info(f'Event created: {event.get("htmlLink")}')
+            #display a confirmation message to the user
+            print(f'Event created: {event.get("htmlLink")}')
+
+    #def remove_event(self, date):
+        # retrieve events for selected date
+        # if events exist, prompt the user to select event to remove
+        #use google calendar api to delete selected event
+        # display confirmation message

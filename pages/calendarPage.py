@@ -4,6 +4,7 @@ import calendar
 import datetime
 import logging
 from pages.goog import create_calendar_service, create_event, delete_custom_event_by_title
+import traceback
 
 # Configure logging
 logging.basicConfig(
@@ -25,8 +26,10 @@ class CalendarPage(tk.Frame):
         super().__init__(master)
         self.master = master
         self.configure(bg="#ADD8E6")
-        self.current_month = 8  # Set the initial month (e.g., August)
+        self.current_month = 9  # Set the initial month (e.g., August)
         self.current_year = 2023  # Set the initial year
+        self.clicked_day = None # Initialize clicked day
+        self.clicked_month = None # Initialize clicked month
         self.create_widgets()
 
     def create_widgets(self):
@@ -126,39 +129,45 @@ class CalendarPage(tk.Frame):
                     button.config(text=str(day))
 
     def show_event_dialog(self, col, row):
+        # get text (day number) displayed on clicked button
         day_text = self.buttons[row][col]["text"]
+
         if day_text:
+            # convert to int
             clicked_day = int(day_text)
-            clicked_month = self.current_month
+            clicked_month = self.current_month  # Update clicked_month attribute
 
-            # Add logging to inspect values
-            logging.debug(f"Clicked Day: {clicked_day}, Clicked Month: {clicked_month}")
 
-            # Use clicked_day and clicked_month as the day and month components of the event date
-            event_date = f"{self.current_year}-{clicked_month:02d}-{clicked_day:02d}"  # Format as YYYY-MM-DD
+            # calculate weekday index for first day box in month
+            first_day = datetime.date(self.current_year, self.current_month, 1).weekday()
 
-            # Update text label of button to match day number
+            #calculate event date based on selected day + weekday index of first day of month
+            days_to_add = (row - 1) * 7 + col - first_day
+            event_date = datetime.date(self.current_year, self.current_month, 1) + datetime.timedelta(days=days_to_add)
+
+            #update label of button to match day number
             self.buttons[row][col].config(text=str(clicked_day))
 
-            # Add logging to inspect values
-            logging.debug(f"Clicked Day: {clicked_day}, Clicked Month: {clicked_month}")
-
-            # Show add event dialog
+            # show add event dialog
             event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title for {event_date}:")
             if event_title:
                 event_description = tk_simpledialog.askstring("Event Details", "Enter Event Description:")
-                event_time = tk_simpledialog.askstring("Event Details", "Enter Event Time (HH:MM):")
-                if event_time:
-                    event_datetime = datetime.datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+                event_start_time = tk_simpledialog.askstring("Event Details", "Enter Event Time (HH:MM):")
+                event_end_time = tk_simpledialog.askstring("Event Details", "Enter Event end time (HH:MM)")
+                if event_start_time:
+                    # combine event date and time into datetime object
+                    event_datetime = datetime.datetime.strptime(f"{event_date} {event_start_time}", "%Y-%m-%d %H:%M")
 
-                    # More logging to inspect event_datetime
-                    logging.debug(f"Event Datetime: {event_datetime}")
+                    event_end_datetime = datetime.datetime.strptime(f"{event_date} {event_end_time}", "%Y-%m-%d %H:%M")
 
-                    self.add_event(event_title, event_description, event_datetime)
+                    # Update clicked_day and clicked_month attributes
+                    self.clicked_day = clicked_day
+                    self.clicked_month = clicked_month
 
-    def add_event(self, event_title, event_description, event_datetime):
+                    self.add_event(event_title, event_description, event_datetime, event_end_datetime)
+
+    def add_event(self, event_title, event_description, event_datetime, event_end_datetime):
         if self.clicked_day is not None and self.clicked_month is not None:
-            date = f"{self.current_year}-{self.clicked_month:02d}-{self.clicked_day:02d}"  # Format as YYYY-MM-DD
             # retrieve event details from the user
             event = {
                 'summary': event_title,
@@ -168,21 +177,21 @@ class CalendarPage(tk.Frame):
                     'timeZone': 'America/Edmonton',
                 },
                 'end': {
-                    'dateTime': event_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'dateTime': event_end_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
                     'timeZone': 'America/Edmonton',
                 },
             }
 
-            # logging
-            logging.debug(f"Adding event: {event_title} on {date} at {event_datetime.strftime('%H:%M')}")
+            try:
+                # use google calendar api to create event
+                event = calendar_service.events().insert(calendarId='primary', body=event).execute()
 
-            #use google calendar api to create event
-            event = calendar_service.events().insert(calendarId='primary', body=event).execute()
-
-            #logging
-            logging.info(f'Event created: {event.get("htmlLink")}')
-            #display a confirmation message to the user
-            print(f'Event created: {event.get("htmlLink")}')
+                # display a confirmation message to the user
+                print(f'Event created: {event.get("htmlLink")}')
+            except Exception as e:
+                print(f"Error creating event:", (e))
+                #print full traceback for debugging
+                traceback.print_exc()
 
     #def remove_event(self, date):
         # retrieve events for selected date

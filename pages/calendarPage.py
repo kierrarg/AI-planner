@@ -28,7 +28,7 @@ class CalendarPage(tk.Frame):
         self.configure(bg="#ADD8E6")
         self.current_month = 9  # Set the initial month (e.g., August)
         self.current_year = 2023  # Set the initial year
-        self.clicked_day = None # Initialize clicked day
+        self.clicked_day = 1 # Initialize clicked day
         self.clicked_month = None # Initialize clicked month
         self.create_widgets()
 
@@ -145,21 +145,81 @@ class CalendarPage(tk.Frame):
         weekday_checkbox = []
 
         for day in self.weekdays:
+            # represent if box is selected
             var = tk.IntVar()
+            # check box with weekday's name as label
             checkbox = tk.Checkbutton(recurring_event_dialog, text=day, variable=var)
             checkbox.pack()
+            # append to tuple weekday name and var to checkboxes
             weekday_checkbox.append((day, var))
 
         # widget for specifying number of weeks
         weeks_label = tk.Label(recurring_event_dialog, text="Number of repeating weeks")
         weeks_label.pack()
-
+        # allow user to input num of weeks
         weeks_entry = tk.Entry(recurring_event_dialog)
         weeks_entry.pack()
+
+        self.clicked_day = 1 # set to default day value
 
         # button to confirm
         create_button = tk.Button(recurring_event_dialog, text="Create Recurring Event", command=lambda: self.add_recurring_event(weekday_checkbox, weeks_entry))
         create_button.pack()
+
+    def add_recurring_event(self, weekday_checkbox, weeks_entry):
+        # extract selected weekday by checking if var is 1 (1 if it has been checked)
+        selected_weekdays = [day for day, var in weekday_checkbox if var.get() == 1]
+
+        # no weekdays selected
+        if not selected_weekdays:
+            tk.messagebox.showerror("Error", "Please select a box")
+            return
+        # get number of weeks
+        try:
+            num_weeks = int(weeks_entry.get())
+            print(num_weeks)
+        except ValueError:
+            #invalid input
+            tk.messagebox.showerror("Error", "Invalid input for number of weeks")   
+            return
+        # calculate start date
+        start_date = datetime.date(self.current_year, self.current_month, self.clicked_day)
+        print(start_date)
+
+        # calculate end date
+        end_date = start_date + datetime.timedelta(weeks=num_weeks - 1)
+        print(end_date)
+
+        # create event for date
+        event_title = tk_simpledialog.askstring("Event Details", f"Enter Event Title")
+        if not event_title:
+            return
+        
+        event_description = tk_simpledialog.askstring("Event Details", f"Enter Description for Event")
+        event_start_time = tk_simpledialog.askstring("Event Details", "Enter Event Start Time (HH:MM)")
+        event_end_time = tk_simpledialog.askstring("Event Details", "Enter Event End Time (HH:MM)")
+        if not event_start_time:
+            return
+
+        # create events for selected weekdays
+        for delta in range((end_date - start_date).days + 1):
+            date = start_date + datetime.timedelta(days=delta)
+
+            # %a needs to be lower case for abbreviation
+            weekday = date.strftime("%a").lower()
+
+            # both day and weekday converted to lowercase
+            if weekday in [day.lower() for day in selected_weekdays]:
+                # combine event date and time into datetime object 
+                event_datetime = datetime.datetime.strptime(f"{date} {event_start_time}", "%Y-%m-%d %H:%M")
+                event_end_datetime = datetime.datetime.strptime(f"{date} {event_end_time}", "%Y-%m-%d %H:%M")
+
+
+                #update clicked day and month attributes
+                self.clicked_day = date.day
+                self.clicked_month = date.month
+
+                self.add_event(event_title, event_description, event_datetime, event_end_datetime, self.clicked_day, self.clicked_month)
 
 
     def show_event_dialog(self, col, row):
@@ -178,6 +238,10 @@ class CalendarPage(tk.Frame):
             #calculate event date based on selected day + weekday index of first day of month
             days_to_add = (row - 1) * 7 + col - first_day
             event_date = datetime.date(self.current_year, self.current_month, 1) + datetime.timedelta(days=days_to_add)
+
+            # setting clicked day and month attributes
+            self.clicked_day = event_date.day
+            self.clicked_month = event_date.month
 
             #update label of button to match day number
             self.buttons[row][col].config(text=str(clicked_day))
@@ -221,8 +285,11 @@ class CalendarPage(tk.Frame):
             self.delete_event(event_title, event_date)
 
 
-    def add_event(self, event_title, event_description, event_datetime, event_end_datetime):
+    def add_event(self, event_title, event_description, event_datetime, event_end_datetime, clicked_day, clicked_month):
         if self.clicked_day is not None and self.clicked_month is not None:
+            # setting clicked day and month
+            self.clicked_day = clicked_day
+            self.clicked_month = clicked_month
             # retrieve event details from the user
             event = {
                 'summary': event_title,
@@ -247,6 +314,10 @@ class CalendarPage(tk.Frame):
                 print(f"Error creating event:", (e))
                 #print full traceback for debugging
                 traceback.print_exc()
+            else:
+                print("Added successfully")
+        else:
+            print("Clicked day and month not set, event not added")
 
     def delete_event(self, event_title, event_date):
         try:

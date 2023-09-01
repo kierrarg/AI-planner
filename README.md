@@ -8,7 +8,7 @@ Implements a database using SQLite to add, remove and track task completion
 
 # Calendar Manager
 
-I am currently in the process of setting up the google calendar api and linking it to my project
+Integrated Google Calendar features allowing user to add and remove events to and from calendar. I am currently in the process of implementing the option to add repeating events.
 
 # Ai planner
 

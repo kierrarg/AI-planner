@@ -3,6 +3,7 @@ from tkinter import ttk
 import db
 from pages.taskPage import TaskListPage
 from pages.calendarPage import CalendarPage
+from pages.planner import PlannerPage
 
 #function to initialize the database
 def initialize_db():
@@ -81,24 +82,9 @@ class Application(tk.Frame):
         self.remove_widgets()
 
         # Create and display the Planner page
-        self.current_page = DailyPlanPage(self)
+        self.current_page = PlannerPage(self)
         self.current_page.pack(fill="both", expand=True)
 
-
-
-
-
-# Define the DailyPlanPage class with its content
-class DailyPlanPage(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.master = master
-        self.configure(bg="#ADD8E6")
-        self.create_widgets()
-
-    def create_widgets(self):
-        label = tk.Label(self, text="This is the Daily Planner Page")
-        label.pack(fill="both", expand=True)
 
 if __name__ == "__main__":
     initialize_db()

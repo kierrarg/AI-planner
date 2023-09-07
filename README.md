@@ -8,8 +8,8 @@ Implements a database using SQLite to add, remove and track task completion
 
 # Calendar Manager
 
-Integrated Google Calendar features allowing user to add and remove events to and from calendar. I am currently in the process of implementing the option to add repeating events.
+Integrated Google Calendar features allowing user to add and remove events to and from their Google Calendar using the Google Calendar API. Users can also add repeating events which is a feature I added to add my class schedule without having to manually add my classes to everyday.
 
-# Ai planner
+# Planner
 
-this is still a work in progress
+I am in the process of working on this

@@ -15,16 +15,14 @@ class Application(tk.Frame):
         super().__init__(master)
         self.master = master
         self.current_page = None  # Initialize the current page
+        self.main_frame = None # initialize main frame
         self.pack(fill="both", expand=True)
         self.configure(bg="#ADD8E6")
         self.create_widgets()
         self.show_home()  # Show main buttons on initialization
 
     def create_widgets(self):
-        self.quit_button = tk.Button(self, text="Quit", command=self.master.destroy)
-        self.quit_button.pack(side="bottom", fill="x")
-
-        # Create and pack the main page buttons
+          # Create and pack the main page buttons
         self.navigation_frame = tk.Frame(self)
         self.navigation_frame.pack(side="top", fill="x")
 
@@ -39,6 +37,9 @@ class Application(tk.Frame):
 
         self.home_button = tk.Button(self.navigation_frame, text="Home", command=self.show_home)
         self.home_button.pack(side="left")
+
+        self.quit_button = tk.Button(self, text="Quit", command=self.quit_application)
+        self.quit_button.pack(side="bottom", fill="x")
 
     def remove_widgets(self):
         # Remove all widgets from the current page
@@ -55,6 +56,11 @@ class Application(tk.Frame):
 
     # displaying top navigation bar
     def show_main_buttons(self):
+
+        if self.main_frame is None:
+            self.main_frame = tk.Frame(self)
+            self.main_frame.pack(fill="both", expand=True)
+
         self.calendar_button.pack(side="left")
         self.tasks_button.pack(side="left")
         self.planner_button.pack(side="left")
@@ -84,12 +90,16 @@ class Application(tk.Frame):
         # Create and display the Planner page
         self.current_page = PlannerPage(self)
         self.current_page.pack(fill="both", expand=True)
+    
+    def quit_application(self):
+        self.master.quit()
 
 
 if __name__ == "__main__":
     initialize_db()
     root = tk.Tk()
     root.geometry("800x600")
+    root.protocol("WM_DELETE_WINDOW", root.destroy)  # Handle the quit button event
 
     app = Application(master=root)
 

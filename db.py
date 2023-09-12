@@ -26,7 +26,7 @@ def insert(task_text, priority_level=1):
     connection = sqlite3.connect("task.db")
     # inserting new row into table, providing insert as tuple task_text, (tuple improves security and maintainability)
     cursor = connection.cursor()
-    cursor.execute("INSERT INTO task (task_text, priority_level) VALUES (?, ?)", (task_text, priority_level))
+    cursor.execute("INSERT INTO task (task_text, priority_level) VALUES (?, ?)", (task_text, int(priority_level)))
 
     #get the ID of the newly inserted task
     task_id = cursor.lastrowid   

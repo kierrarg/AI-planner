@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import db
+import sqlite3
 
 # Define the TaskListPage class with its content
 class TaskListPage(tk.Frame):
@@ -14,7 +15,7 @@ class TaskListPage(tk.Frame):
         label = tk.Label(self, text="This is the Task List Page")
         label.pack(fill="both", expand=True)
 
-        #frame for task input
+        # Frame for task input
         input_frame = tk.Frame(self, bg="#ADD8E6")
         input_frame.pack(side="left", padx=10, pady=10, anchor="w")
 
@@ -62,10 +63,6 @@ class TaskListPage(tk.Frame):
         # Fetch tasks
         tasks = db.get_task()
 
-        # Check if tasks is empty
-        if not tasks:
-            return  # Don't proceed if tasks are empty
-
         # Clear Treeview
         task_treeview.delete(*task_treeview.get_children())
 
@@ -76,7 +73,6 @@ class TaskListPage(tk.Frame):
 
             if completed:
                 # Apply a custom style for completed tasks
-                task_text = " [Completed] " + task_text  # Add [Completed] prefix
                 task_treeview.insert("", "end", values=(task_text, priority_level), tags=("completed",))
             else:
                 task_treeview.insert("", "end", values=(task_text, priority_level), tags=("incomplete"))
@@ -91,12 +87,12 @@ class TaskListPage(tk.Frame):
         new_task_text = task_entry.get()
         priority_level = priority_entry.get()
 
-        # ensure priority level is an integer
+        # Ensure priority level is an integer
         try:
             priority_level = int(priority_level)
-            priority_level = max(1, min(priority_level, 5)) #limiting allowed priority level
+            priority_level = max(1, min(priority_level, 5)) # Limiting allowed priority level
         except ValueError:
-            priority_level = 1 #default to 1 if not valid int
+            priority_level = 1 # Default to 1 if not valid int
 
         # Insert task into db
         db.insert(new_task_text, priority_level)
@@ -115,18 +111,18 @@ class TaskListPage(tk.Frame):
 
         # Mark tasks as completed in the database
         for index in selected_task_indices:
-            task_text = task_treeview.item(index, "values")[0]  # get task text from tree view
-            task_id = db.get_task().get(task_text) # get task id using task text
+            task_text = task_treeview.item(index, "values")[0]  # Get task text from tree view
+            task_id = db.get_task().get(task_text) # Get task id using task text
             if task_id is not None:
                 completed = db.get_completion(task_id)
                 if completed:
-                    # remove tag
+                    # Remove tag
                     task_treeview.item(index, tags=())
                     db.update(task_text, 0)
                 else:
-                    # apply tag
+                    # Apply tag
                     task_treeview.item(index, tags=("completed"))
-                    db.update(task_text, 1) # mark as complete in db
+                    db.update(task_text, 1) # Mark as complete in db
 
         # Fetch and display updated tasks
         self.fetch_display(task_treeview)
@@ -136,10 +132,15 @@ class TaskListPage(tk.Frame):
         # Get selected tasks
         selected_tasks_indices = task_treeview.selection()
         
-        # Delete selected task from db
+        # Delete selected tasks from db
         for index in selected_tasks_indices:
             task_text = task_treeview.item(index, "values")[0]  # Get the task text from the Treeview
-            db.delete(task_text)  # Delete the task directly by passing task_text
+            try:
+                db.delete(task_text)  # Delete the task 
+                print("Task Successfully Deleted")
+            except sqlite3.Error as e:
+                print("sqlite Error:", e)
+        
 
         # Refresh the Treeview
         self.fetch_display(task_treeview)

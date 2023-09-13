@@ -12,4 +12,4 @@ Integrated Google Calendar features allowing user to add and remove events to an
 
 # Planner
 
-I am in the process of working on this
+Implements a planner page which adds the weekly tasks from tasks.db to your Google Calendar 

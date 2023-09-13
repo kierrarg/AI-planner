@@ -27,7 +27,6 @@ class PlannerPage(tk.Frame):
         print("calling generate weekly planner")
 
         try:
-
             tasks = self.get_weekly_tasks()
 
             # define time slots from 10am to 8pm
@@ -44,14 +43,22 @@ class PlannerPage(tk.Frame):
                 "19:00 - 20:00",
             ]
 
-            # assign tasks to time slots 
+            assigned_tasks = {}  # Initialize assigned tasks dictionary
+
+            # assign tasks to time slots
             for timeslot in timeslots:
-                assigned_tasks = self.assign_to_time_slot(tasks, timeslot)
+                assigned_tasks = self.assign_to_time_slot(tasks, timeslot, assigned_tasks, timeslots)
                 print(f"Assigned tasks for timeslot {timeslot}: {assigned_tasks}")
-                self.schedule_events(assigned_tasks)
+
+                # Check if all tasks have been assigned
+                if len(assigned_tasks) == len(tasks):
+                    break  # All tasks are assigned, break the loop
+
+             # Call the schedule_events function
+            self.schedule_events(assigned_tasks)
 
         except Exception as e:
-            print(f"An error has occured: ", e)
+            print(f"An error has occurred: ", e)
 
     # function to get tasks
     def get_weekly_tasks(self):
@@ -71,16 +78,15 @@ class PlannerPage(tk.Frame):
         return tasks_with_priority
         
     # function to assign tasks to time slots based on priority level and nearest available time slot
-    def assign_to_time_slot(self, tasks, timeslot):
+    def assign_to_time_slot(self, tasks, timeslot, assigned_tasks, timeslots):
         print("Calling assign to timeslot")
-        assigned_tasks = {}
         task_list = []
 
         print("Timeslot: ", timeslot)
 
         # Create a list of tasks with their priority levels
         for task_title, priority_level in tasks.items():
-            print("Enterring 1st for loop")
+            print("Entering 1st for loop")
             task_list.append((task_title, priority_level))
             print(task_list)
 
@@ -89,22 +95,40 @@ class PlannerPage(tk.Frame):
 
         print("Sorted tasks: ", sorted_tasks)
 
+        # Initialize available time slots as a copy of the original time slots
+        available_time_slots = timeslots.copy()
+
         for task_title, priority_level in sorted_tasks:
-            # Find the nearest available time slot
-            print("Enterring 2nd for loop")
-            nearest_slot = self.find_nearest_available_slot(timeslot, assigned_tasks)
+            # Find the nearest available time slot based on priority
+            nearest_slot = None
+
+            for slot in available_time_slots:
+                print("Inside 2nd for loop")
+                start_time, _ = self.parse_timeslot(slot)
+                print(start_time)
+                start_hour = int(start_time.split(":")[0])
+                print("Start hour: ", start_hour)
+
+                # Check if the priority matches or is higher than the task's priority
+                if priority_level >= tasks[task_title]:
+                    # Check if the time slot is not already assigned
+                    if slot not in assigned_tasks:
+                        nearest_slot = slot
+                        break  # Assign the task to the first available slot
+
             print("Current Timeslot: ", timeslot)
-            print("Assigned tasks b4 adding", assigned_tasks)
+            print("Assigned tasks before adding", assigned_tasks)
             print("Nearest slot: ", nearest_slot)
             if nearest_slot:
                 assigned_tasks[nearest_slot] = {
                     "task_text": task_title,
                     "priority_level": priority_level
                 }
-            print("Assigned tasks after adding", assigned_tasks)
+                # Remove the assigned slot from available slots
+                available_time_slots.remove(nearest_slot)
+                print("Assigned tasks after adding", assigned_tasks)
 
         return assigned_tasks
-    
 
     # function to find nearest time slot
     def find_nearest_available_slot(self, timeslot, assigned_tasks):

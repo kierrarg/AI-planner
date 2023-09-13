@@ -144,7 +144,7 @@ class CalendarPage(tk.Frame):
         for row_num, week in enumerate(cal):
             for col_num, day in enumerate(week):
                 if day != 0:
-                    print(f"Row: {row_num}, Col: {col_num}, Day: {day}, Year: {self.current_year}, Month: {self.current_month}")
+                    #print(f"Row: {row_num}, Col: {col_num}, Day: {day}, Year: {self.current_year}, Month: {self.current_month}")
                     # Update the text on the corresponding button
                     button = self.buttons[row_num][col_num]
                     button.config(text=str(day))
@@ -240,8 +240,8 @@ class CalendarPage(tk.Frame):
             # Update the clicked day and month attributes for single-day events
             self.single_event_clicked_day = event_date.day
             self.single_event_clicked_month = event_date.month
-            print(f"Clicked Day: {self.single_event_clicked_day}")
-            print(f"Clicked Month: {self.single_event_clicked_month}")
+            #print(f"Clicked Day: {self.single_event_clicked_day}")
+            #print(f"Clicked Month: {self.single_event_clicked_month}")
             # Reset recurring event attributes
             self.recurring_event_clicked_day = None
             self.recurring_event_clicked_month = None
@@ -293,6 +293,7 @@ class CalendarPage(tk.Frame):
 
     # Function to create an event
     def add_event(self, event_title, event_description, event_datetime, event_end_datetime):
+        print("Adding event to google calendar")
         # retrieve event details from the user
         event = {
             'summary': event_title,
@@ -308,12 +309,13 @@ class CalendarPage(tk.Frame):
         }
 
         # Print for debugging
-        print("Clicked Day:", self.single_event_clicked_day)
-        print("Clicked Month:", self.single_event_clicked_month)
-        print("Event Start DateTime:", event_datetime)
-        print("Event End DateTime:", event_end_datetime)
-
+        #print("Clicked Day:", self.single_event_clicked_day)
+        #print("Clicked Month:", self.single_event_clicked_month)
+        #print("Event Start DateTime:", event_datetime)
+        #print("Event End DateTime:", event_end_datetime)
+        print("before try")
         try:
+            print("trying")
             # use google calendar api to create event
             event = calendar_service.events().insert(calendarId='primary', body=event).execute()
 

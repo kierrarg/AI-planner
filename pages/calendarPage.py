@@ -293,34 +293,33 @@ class CalendarPage(tk.Frame):
 
     # Function to create an event
     def add_event(self, event_title, event_description, event_datetime, event_end_datetime):
-        print("Adding event to google calendar")
-        # retrieve event details from the user
-        event = {
-            'summary': event_title,
-            'description': event_description,
-            'start': {
-                'dateTime': event_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
-                'timeZone': 'America/Edmonton',
-            },
-            'end': {
-                'dateTime': event_end_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
-                'timeZone': 'America/Edmonton',
-            },
-        }
-
-        # Print for debugging
-        #print("Clicked Day:", self.single_event_clicked_day)
-        #print("Clicked Month:", self.single_event_clicked_month)
-        #print("Event Start DateTime:", event_datetime)
-        #print("Event End DateTime:", event_end_datetime)
-        print("before try")
+        
         try:
-            print("trying")
-            # use google calendar api to create event
-            event = calendar_service.events().insert(calendarId='primary', body=event).execute()
+            # check if timeslot available
+            if not self.is_timeslot_assigned(event_datetime, event_end_datetime):
+                # retrieve event details from the user
+                event = {
+                    'summary': event_title,
+                    'description': event_description,
+                    'start': {
+                        'dateTime': event_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                        'timeZone': 'America/Edmonton',
+                    },
+                    'end': {
+                        'dateTime': event_end_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                        'timeZone': 'America/Edmonton',
+                    },
+                }
 
-            # display a confirmation message to the user
-            print(f'Event created: {event.get("htmlLink")}')
+                # use google calendar api to create event
+                event = calendar_service.events().insert(calendarId='primary', body=event).execute()
+
+                # display a confirmation message to the user
+                print(f'Event created: {event.get("htmlLink")}')
+                
+            else:
+                print("Timeslot already assigned")
+
         except Exception as e:
             print(f"Error creating event:", (e))
             # print full traceback for debugging
@@ -347,3 +346,28 @@ class CalendarPage(tk.Frame):
             print(f'Event with title "{event_title}" not found')
         except Exception as e:
             print("An error has occurred", (e))
+
+    # function to check if a timeslot has an event assigned to it
+    def is_timeslot_assigned(self, event_start_time, event_end_time):
+
+        try:
+            # retrieve events for current month
+            events = calendar_service.events().list(
+                calendarId='primary',
+                timeMin=event_start_time.isoformat(),
+                timeMax=event_end_time.isoformat()).execute()
+            
+            for event in events.get('items', []):
+                # check for overlapping events
+                event_start = datetime.datetime.fromisoformat(event['start']['dateTime'])
+                event_end = datetime.datetime.fromisoformat(event['end']['dateTime'])
+
+                if event_start < event_end_time and event_end > event_start:
+                    # there is an overlap
+                    return True
+                
+            return False
+        
+        except Exception as e:
+            print("An error has occurred while checking timeslot availability: ", e)
+            return False

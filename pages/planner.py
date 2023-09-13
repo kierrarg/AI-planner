@@ -47,7 +47,7 @@ class PlannerPage(tk.Frame):
 
             # assign tasks to time slots
             for timeslot in timeslots:
-                assigned_tasks = self.assign_to_time_slot(tasks, timeslot, assigned_tasks, timeslots)
+                assigned_tasks = self.assign_to_time_slot(tasks, timeslot, assigned_tasks, timeslots, event_date=datetime.date.today())
                 print(f"Assigned tasks for timeslot {timeslot}: {assigned_tasks}")
 
                 # Check if all tasks have been assigned
@@ -78,9 +78,10 @@ class PlannerPage(tk.Frame):
         return tasks_with_priority
         
     # function to assign tasks to time slots based on priority level and nearest available time slot
-    def assign_to_time_slot(self, tasks, timeslot, assigned_tasks, timeslots):
+    def assign_to_time_slot(self, tasks, timeslot, assigned_tasks, timeslots, event_date):
         print("Calling assign to timeslot")
         task_list = []
+        calendar_page = CalendarPage()
 
         print("Timeslot: ", timeslot)
 
@@ -120,15 +121,27 @@ class PlannerPage(tk.Frame):
             print("Assigned tasks before adding", assigned_tasks)
             print("Nearest slot: ", nearest_slot)
             if nearest_slot:
-                assigned_tasks[nearest_slot] = {
-                    "task_text": task_title,
-                    "priority_level": priority_level
-                }
-                # Remove the assigned slot from available slots
-                available_time_slots.remove(nearest_slot)
-                print("Assigned tasks after adding", assigned_tasks)
+                # Parse the nearest slot to get start and end times
+                nearest_start_time, nearest_end_time = self.parse_timeslot(nearest_slot)
+                # Combine the event_date with start and end times
+                event_start_datetime = datetime.datetime.combine(event_date, datetime.datetime.strptime(nearest_start_time, "%H:%M").time())
+                event_end_datetime = datetime.datetime.combine(event_date, datetime.datetime.strptime(nearest_end_time, "%H:%M").time())
+                
+                # Check if the nearest slot is available
+                if not calendar_page.is_timeslot_assigned(event_start_datetime, event_end_datetime):
+                    assigned_tasks[nearest_slot] = {
+                        "task_text": task_title,
+                        "priority_level": priority_level,
+                        "event_date": event_date
+                    }
+                    # Remove the assigned slot from available slots
+                    available_time_slots.remove(nearest_slot)
+                    print("Assigned tasks after adding", assigned_tasks)
+
+            next_available_slot = self.get_next_timeslot(timeslot, available_time_slots)
 
         return assigned_tasks
+    
 
     # function to find nearest time slot
     def find_nearest_available_slot(self, timeslot, assigned_tasks):
@@ -170,31 +183,19 @@ class PlannerPage(tk.Frame):
     
 
     # Function to get the next timeslot (e.g., move from "10:00 - 11:00" to "11:00 - 12:00")
-    def get_next_timeslot(self, current_timeslot):
+    def get_next_timeslot(self, current_timeslot, timeslots):
         print("Calling get next timeslot")
-        # Split the current timeslot into start and end times
-        start_time, end_time = current_timeslot.split(" - ")
-
-        # Increment the start and end times by one hour
-        start_time_parts = start_time.split(":")
-        end_time_parts = end_time.split(":")
-        start_hour = int(start_time_parts[0])
-        end_hour = int(end_time_parts[0])
-
-        # Increment the hours and ensure the end time does not exceed 9:00 PM (21:00)
-        start_hour += 1
-        end_hour += 1
-        if end_hour > 21:
-            end_hour = 21
-
-        # Format the updated times
-        updated_start_time = f"{start_hour:02d}:00"
-        updated_end_time = f"{end_hour:02d}:00"
-
-        # Combine the updated times into a new timeslot
-        next_timeslot = f"{updated_start_time} - {updated_end_time}"
-
-        return next_timeslot
+        # find the index of the current timeslot
+        try:
+            current_index = timeslots.index(current_timeslot)
+        except ValueError:
+            return None # timeslot is not in list
+        
+        # if next timeslot is available
+        if current_index < len(timeslots) - 1:
+            return timeslots[current_index + 1]
+        else:
+            return None # next timeslot not available
 
     # function to split timeslot into start + end times
     def parse_timeslot(self, timeslot):
@@ -228,10 +229,20 @@ class PlannerPage(tk.Frame):
                 event_start_time = datetime.datetime.strptime(event_start_time_str, "%H:%M").time()
                 event_end_time = datetime.datetime.strptime(event_end_time_str, "%H:%M").time()
 
+                # get event date associated with timeslot
+                event_date = task_info.get("event_date")
+
+                if event_date is None:
+                    print(f"Event date missing for timeslot {timeslot}")
+                    continue
+
                 # Create datetime objects for time with the current date
-                current_date = datetime.date.today()
-                event_start_datetime = datetime.datetime.combine(current_date, event_start_time)
-                event_end_datetime = datetime.datetime.combine(current_date, event_end_time)
+                event_start_datetime = datetime.datetime.combine(event_date, event_start_time)
+                event_end_datetime = datetime.datetime.combine(event_date, event_end_time)
+
+                # specify timezone
+                event_start_datetime = event_start_datetime.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=-6)))
+                event_end_datetime = event_end_datetime.replace(tzinfo=datetime.timezone(datetime.timedelta(hours=-6)))
 
                 # Format as string
                 event_start_time_str = event_start_datetime.strftime('%Y-%m-%dT%H:%M:%S')
@@ -241,6 +252,10 @@ class PlannerPage(tk.Frame):
                 print("Start Time: ", event_start_time_str)
                 print("End Time: ", event_end_time_str)
 
+                if calendar_page.is_timeslot_assigned(event_start_datetime, event_end_datetime):
+                    print(f"Time slot {timeslot} is already assigned, skipping to next time slot {timeslot}")
+                    continue
+
                 calendar_page.add_event(event_title, event_description, event_start_datetime, event_end_datetime)
 
                 print("Added event", event_title, "to", event_start_time_str)
@@ -248,6 +263,7 @@ class PlannerPage(tk.Frame):
             except Exception as e:
                 print(f"An error has occurred: {e}")
                 traceback.print_exc()
+
 
     # function to calculate an hour after event start time
     def calculate_end_time(self, event_start_time):

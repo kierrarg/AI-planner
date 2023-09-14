@@ -1,4 +1,4 @@
-# This project is still a work in progress
+# Welcome to my planner
 
 The UI was created using Tkinter
 
